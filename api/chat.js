@@ -1,3 +1,9 @@
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -14,6 +20,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'GEMINI_KEY not configured' });
     }
 
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: 'Invalid messages format' });
+    }
+
     const geminiMessages = messages.map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
@@ -25,7 +35,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: system }] },
+          system_instruction: { parts: [{ text: system || '' }] },
           contents: geminiMessages,
           generationConfig: { maxOutputTokens: 1000, temperature: 0.7 }
         })
@@ -33,7 +43,7 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    
+
     if (data.error) {
       return res.status(500).json({ error: data.error.message });
     }
